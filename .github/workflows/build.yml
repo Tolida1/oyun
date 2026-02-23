@@ -10,23 +10,35 @@ jobs:
         with:
           lfs: true
 
-      - name: Godot Kurulumu (Standard Version)
+      - name: Godot Standart Versiyonu Kur
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.2.1
-          use-mono: false # C# kullanmadığımız için kapattık
+          use-mono: false # Kesinlikle C# kullanma diyoruz
 
-      - name: Export Sablonlarini İndir
+      - name: Export Sablonlarini İndir ve Yerlestir
         run: |
+          # Klasörleri oluştur (Hem normal hem mono ihtimaline karşı ikisini de yapıyoruz)
           mkdir -p ~/.local/share/godot/export_templates/4.2.1.stable
+          mkdir -p ~/.local/share/godot/export_templates/4.2.1.stable.mono
+          
+          # Şablonları indir
           wget https://github.com/godotengine/godot-builds/releases/download/4.2.1-stable/Godot_v4.2.1-stable_export_templates.tpz
           unzip Godot_v4.2.1-stable_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
+          
+          # Dosyaları her iki olası klasöre de kopyala (Hata payını sıfırlıyoruz)
+          cp -r templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
+          cp -r templates/* ~/.local/share/godot/export_templates/4.2.1.stable.mono/
+          rm Godot_v4.2.1-stable_export_templates.tpz
+
+      - name: Android SDK Ayari
+        uses: android-actions/setup-android@v3
 
       - name: Android APK Olustur
         run: |
           mkdir -p build/android
-          godot --headless --export-release "Android" build/android/oyun.apk
+          # --headless modda export al
+          godot --headless --verbose --export-release "Android" build/android/oyun.apk
           
       - name: APK Yukle
         uses: actions/upload-artifact@v4
