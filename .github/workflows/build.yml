@@ -5,35 +5,30 @@ jobs:
   export-android:
     runs-on: ubuntu-latest
     steps:
-      - name: Kodları Çek
+      - name: Kodlari Cek
         uses: actions/checkout@v4
         with:
           lfs: true
 
-      - name: Godot Kurulumu
+      - name: Godot Kurulumu (Standard Version)
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.2.1
+          use-mono: false # C# kullanmadığımız için kapattık
 
-      - name: Export Şablonlarını İndir (ÇOK ÖNEMLİ)
+      - name: Export Sablonlarini İndir
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.2.1.stable
           wget https://github.com/godotengine/godot-builds/releases/download/4.2.1-stable/Godot_v4.2.1-stable_export_templates.tpz
           unzip Godot_v4.2.1-stable_export_templates.tpz
           mv templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
-          rm Godot_v4.2.1-stable_export_templates.tpz
 
-      - name: Android Klasörünü Hazırla
-        run: mkdir -v -p build/android
-
-      - name: Android APK Oluştur
-        # Not: 'Android' ismi export_presets.cfg dosyasındaki [preset.0] name ile aynı olmalı!
-        run: godot --headless --export-release "Android" build/android/oyun.apk
+      - name: Android APK Olustur
+        run: |
+          mkdir -p build/android
+          godot --headless --export-release "Android" build/android/oyun.apk
           
-      - name: Dosyaları Listele (Hata Ayıklama İçin)
-        run: ls -R build/
-
-      - name: APK Dosyasını Yükle
+      - name: APK Yukle
         uses: actions/upload-artifact@v4
         with:
           name: Oyun-Paketi
