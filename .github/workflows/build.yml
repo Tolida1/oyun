@@ -1,4 +1,4 @@
-name: "Android Build - Kesin Cozum V2"
+name: "Android Build - Keystore Fix"
 on: [push]
 
 jobs:
@@ -7,8 +7,6 @@ jobs:
     steps:
       - name: Kodlari Cek
         uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - name: Godot Standart Indir
         run: |
@@ -27,16 +25,16 @@ jobs:
       - name: Android SDK Ayari
         uses: android-actions/setup-android@v3
 
-      - name: Gecici Debug Keystore Olustur (Hata Onleyici)
+      - name: Debug Keystore Olustur
         run: |
+          # Anahtarı direkt ana dizinde oluşturuyoruz
           keytool -keyalg RSA -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+          ls -l debug.keystore # Dosya oluştu mu kontrol et (loglarda göreceğiz)
 
       - name: APK Olustur
-        env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: |
           mkdir -p build/android
-          # Godot'ya SDK yolunu zorla ogretiyoruz
+          # Export komutu
           ./godot --headless --verbose --export-release "Android" build/android/oyun.apk
           
       - name: APK Yukle
