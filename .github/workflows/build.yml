@@ -5,24 +5,25 @@ jobs:
   export-android:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Kodları Çek (Checkout)
+        uses: actions/checkout@v4 # v4 sürümüne güncellendi
         with:
           lfs: true
 
-      - name: Setup Godot
+      - name: Godot Kurulumu
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.2.1
 
-      - name: Build Android APK
+      - name: Android APK Oluştur
         run: |
           mkdir -v -p build/android
-          # Not: Projende 'Android' isimli bir export preset olmalı
+          # Headless modda Godot'yu çalıştırıp APK alıyoruz
           godot --headless --export-release "Android" build/android/oyun.apk
           
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
+      - name: APK Dosyasını Yükle (Artifact)
+        uses: actions/upload-artifact@v4 # HATAYI ÇÖZEN GÜNCELLEME BURASI
         with:
           name: Oyun-Paketi
           path: build/android/oyun.apk
+          retention-days: 5 # Dosyanın 5 gün sonra silinmesini sağlar (yer kaplamaz)
