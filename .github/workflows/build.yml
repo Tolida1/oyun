@@ -1,4 +1,4 @@
-name: "Android Build - Ultimate Fix"
+name: "Android Build - Otomatik Ayar Modu"
 on: [push]
 
 jobs:
@@ -29,15 +29,32 @@ jobs:
         run: |
           keytool -keyalg RSA -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
 
-      - name: Projeyi Tara ve Import Et (Kritik Adim)
+      - name: Export Ayarlarini (Preset) Otomatik Yaz
         run: |
-          # Godot'nun dosyalari tanimasi icin bir kez acilip kapanmasi gerekir
-          ./godot --headless --editor --quit --path .
+          # Bu komut senin yerine hatasiz bir cfg dosyasi olusturur
+          cat <<EOF > export_presets.cfg
+          [preset.0]
+          name="Android"
+          platform="Android"
+          runnable=true
+          export_path="build/android/oyun.apk"
+          [preset.0.options]
+          keystore/debug="$(pwd)/debug.keystore"
+          keystore/debug_user="androiddebugkey"
+          keystore/debug_password="android"
+          keystore/release="$(pwd)/debug.keystore"
+          keystore/release_user="androiddebugkey"
+          keystore/release_password="android"
+          package/unique_name="com.tolidagames.oyun"
+          package/name="Sonsuz Macera"
+          architecture/arm64-v8a=true
+          EOF
 
       - name: APK Olustur
         run: |
           mkdir -p build/android
-          # "Android" adli preset ile export al
+          # Godot'ya SDK yolunu çevre değişkeniyle öğretiyoruz
+          export GODOT_ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT
           ./godot --headless --verbose --export-release "Android" build/android/oyun.apk
           
       - name: APK Yukle
