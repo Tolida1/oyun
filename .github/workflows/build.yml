@@ -1,4 +1,4 @@
-name: "Android Build - Final Fix"
+name: "Android Build - Ultimate Fix"
 on: [push]
 
 jobs:
@@ -25,17 +25,19 @@ jobs:
       - name: Android SDK Ayari
         uses: android-actions/setup-android@v3
 
-      - name: Keystore Olustur ve Yerlestir
+      - name: Keystore Olustur
         run: |
-          # Anahtarı oluştur ve 'debug.keystore' adıyla ana dizine koy
           keytool -keyalg RSA -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
-          # Dosyanın yerini doğrula (Loglarda görmek için)
-          ls -la 
+
+      - name: Projeyi Tara ve Import Et (Kritik Adim)
+        run: |
+          # Godot'nun dosyalari tanimasi icin bir kez acilip kapanmasi gerekir
+          ./godot --headless --editor --quit --path .
 
       - name: APK Olustur
         run: |
           mkdir -p build/android
-          # Godot'nun anahtar dosyasını tanıması için import etmesini beklemesine gerek kalmadan direkt export alıyoruz
+          # "Android" adli preset ile export al
           ./godot --headless --verbose --export-release "Android" build/android/oyun.apk
           
       - name: APK Yukle
