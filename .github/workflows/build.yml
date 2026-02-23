@@ -5,8 +5,8 @@ jobs:
   export-android:
     runs-on: ubuntu-latest
     steps:
-      - name: Kodları Çek (Checkout)
-        uses: actions/checkout@v4 # v4 sürümüne güncellendi
+      - name: Kodları Çek
+        uses: actions/checkout@v4
         with:
           lfs: true
 
@@ -15,15 +15,26 @@ jobs:
         with:
           version: 4.2.1
 
-      - name: Android APK Oluştur
+      - name: Export Şablonlarını İndir (ÇOK ÖNEMLİ)
         run: |
-          mkdir -v -p build/android
-          # Headless modda Godot'yu çalıştırıp APK alıyoruz
-          godot --headless --export-release "Android" build/android/oyun.apk
+          mkdir -p ~/.local/share/godot/export_templates/4.2.1.stable
+          wget https://github.com/godotengine/godot-builds/releases/download/4.2.1-stable/Godot_v4.2.1-stable_export_templates.tpz
+          unzip Godot_v4.2.1-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
+          rm Godot_v4.2.1-stable_export_templates.tpz
+
+      - name: Android Klasörünü Hazırla
+        run: mkdir -v -p build/android
+
+      - name: Android APK Oluştur
+        # Not: 'Android' ismi export_presets.cfg dosyasındaki [preset.0] name ile aynı olmalı!
+        run: godot --headless --export-release "Android" build/android/oyun.apk
           
-      - name: APK Dosyasını Yükle (Artifact)
-        uses: actions/upload-artifact@v4 # HATAYI ÇÖZEN GÜNCELLEME BURASI
+      - name: Dosyaları Listele (Hata Ayıklama İçin)
+        run: ls -R build/
+
+      - name: APK Dosyasını Yükle
+        uses: actions/upload-artifact@v4
         with:
           name: Oyun-Paketi
           path: build/android/oyun.apk
-          retention-days: 5 # Dosyanın 5 gün sonra silinmesini sağlar (yer kaplamaz)
