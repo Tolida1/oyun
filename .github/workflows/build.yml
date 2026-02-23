@@ -1,4 +1,4 @@
-name: "Android Build - Keystore Fix"
+name: "Android Build - Final Fix"
 on: [push]
 
 jobs:
@@ -25,16 +25,17 @@ jobs:
       - name: Android SDK Ayari
         uses: android-actions/setup-android@v3
 
-      - name: Debug Keystore Olustur
+      - name: Keystore Olustur ve Yerlestir
         run: |
-          # Anahtarı direkt ana dizinde oluşturuyoruz
+          # Anahtarı oluştur ve 'debug.keystore' adıyla ana dizine koy
           keytool -keyalg RSA -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
-          ls -l debug.keystore # Dosya oluştu mu kontrol et (loglarda göreceğiz)
+          # Dosyanın yerini doğrula (Loglarda görmek için)
+          ls -la 
 
       - name: APK Olustur
         run: |
           mkdir -p build/android
-          # Export komutu
+          # Godot'nun anahtar dosyasını tanıması için import etmesini beklemesine gerek kalmadan direkt export alıyoruz
           ./godot --headless --verbose --export-release "Android" build/android/oyun.apk
           
       - name: APK Yukle
