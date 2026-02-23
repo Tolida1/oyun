@@ -1,4 +1,4 @@
-name: "Android Build - Kesin Cozum"
+name: "Android Build - Kesin Cozum V2"
 on: [push]
 
 jobs:
@@ -10,9 +10,8 @@ jobs:
         with:
           lfs: true
 
-      - name: Standart Godot Indir (Mono Olmayan)
+      - name: Godot Standart Indir
         run: |
-          # Godot 4.2.1 Standart sürümü indiriyoruz (C# içermez)
           wget https://github.com/godotengine/godot/releases/download/4.2.1-stable/Godot_v4.2.1-stable_linux.x86_64.zip
           unzip Godot_v4.2.1-stable_linux.x86_64.zip
           mv Godot_v4.2.1-stable_linux.x86_64 godot
@@ -25,13 +24,19 @@ jobs:
           unzip Godot_v4.2.1-stable_export_templates.tpz
           mv templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
 
-      - name: Android SDK Kurulumu
+      - name: Android SDK Ayari
         uses: android-actions/setup-android@v3
 
-      - name: APK Olustur (Zorlamali Mod)
+      - name: Gecici Debug Keystore Olustur (Hata Onleyici)
+        run: |
+          keytool -keyalg RSA -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
+
+      - name: APK Olustur
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: |
           mkdir -p build/android
-          # ./godot komutuyla direkt indirdiğimiz standart sürümü çalıştırıyoruz
+          # Godot'ya SDK yolunu zorla ogretiyoruz
           ./godot --headless --verbose --export-release "Android" build/android/oyun.apk
           
       - name: APK Yukle
