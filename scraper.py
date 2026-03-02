@@ -2,123 +2,119 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import time
 import json
 import re
 import os
 
+# --- AYARLAR ---
 BASE_URL = "https://dizipal.bar"
 OUTPUT_FILE = "dizipal_arsiv.json"
 
+# Test için birkaç kategori ekledim
 KATEGORILER = {
     'aksiyon': 'Aksiyon',
     'hbomax': 'HBO Max',
     'anime': 'Anime'
 }
 
-def load_json():
-    if os.path.exists(OUTPUT_FILE):
-        with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except:
-                return {}
-    return {}
-
-def save_json(data):
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def scrape():
+# Chrome başlatıcı
+def get_driver():
     options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
     options.add_argument("--headless=new")
+    # GitHub Actions için sürüm sabitle (Chrome >=145)
+    driver = uc.Chrome(options=options, version_main=145)
+    return driver
 
-    driver = uc.Chrome(options=options)
-    wait = WebDriverWait(driver, 20)
+# Cloudflare + içerik çekme
+def scrape():
+    results = {}
+    if os.path.exists(OUTPUT_FILE):
+        with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
+            try:
+                results = json.load(f)
+            except:
+                results = {}
 
-    results = load_json()
+    driver = get_driver()
 
     try:
-        print("Ana sayfa açılıyor...")
+        print("🛡️ Cloudflare geçiliyor...")
         driver.get(BASE_URL)
-
-        # Sayfa yüklenmesini bekle
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        time.sleep(15)  # Cloudflare bekleme
 
         for slug, ad in KATEGORILER.items():
-            print(f"\nKategori: {ad}")
-
-            if slug == "hbomax":
-                cat_url = f"{BASE_URL}/platform/{slug}/"
-            else:
-                cat_url = f"{BASE_URL}/kategori/{slug}/"
-
+            cat_url = f"{BASE_URL}/platform/{slug}/" if slug == 'hbomax' else f"{BASE_URL}/kategori/{slug}/"
+            print(f"\n📂 Kategori: {ad}")
             driver.get(cat_url)
-
-            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".post-item, article")))
+            time.sleep(5)
 
             items = driver.find_elements(By.CSS_SELECTOR, ".post-item, article")
-
+            content_links = []
             for item in items:
                 try:
                     a = item.find_element(By.TAG_NAME, "a")
                     img = item.find_element(By.TAG_NAME, "img")
-
-                    title = a.get_attribute("title") or a.text
-                    url = a.get_attribute("href")
-                    image = img.get_attribute("src")
-
-                    key = re.sub(r'\W+', '-', title).lower().strip('-')
-
-                    if key in results:
-                        continue
-
-                    print("İçerik:", title)
-
-                    driver.get(url)
-
-                    wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-
-                    results[key] = {
-                        "isim": title,
-                        "resim": image,
-                        "bolumler": []
-                    }
-
-                    # Bölüm linkleri
-                    ep_links = driver.find_elements(By.CSS_SELECTOR, "a[href*='bolum']")
-
-                    if not ep_links:
-                        iframes = driver.find_elements(By.TAG_NAME, "iframe")
-                        if iframes:
-                            results[key]["bolumler"].append({
-                                "bolum_baslik": "Film",
-                                "link": iframes[0].get_attribute("src")
-                            })
-                    else:
-                        ep_urls = [e.get_attribute("href") for e in ep_links]
-
-                        for i, ep in enumerate(ep_urls, 1):
-                            driver.get(ep)
-                            wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-
-                            iframe = driver.find_element(By.TAG_NAME, "iframe")
-
-                            results[key]["bolumler"].append({
-                                "bolum_baslik": f"Bölüm {i}",
-                                "link": iframe.get_attribute("src")
-                            })
-
-                    save_json(results)
-
-                except Exception as e:
-                    print("Hata:", e)
+                    content_links.append({
+                        "title": a.get_attribute("title") or a.text,
+                        "url": a.get_attribute("href"),
+                        "img": img.get_attribute("src")
+                    })
+                except:
                     continue
 
+            for content in content_links:
+                key = re.sub(r'\W+', '-', content['title']).lower().strip('-')
+                if key in results: continue
+
+                print(f"🔍 İnceleniyor: {content['title']}")
+                driver.get(content['url'])
+                time.sleep(3)
+
+                results[key] = {
+                    "isim": content['title'],
+                    "resim": content['img'],
+                    "bolumler": []
+                }
+
+                # Bölüm linklerini bul
+                ep_elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='bolum']")
+                if not ep_elements:
+                    iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                    if iframes:
+                        results[key]["bolumler"].append({
+                            "bolum_baslik": "Film",
+                            "link": iframes[0].get_attribute("src")
+                        })
+                else:
+                    ep_urls = [el.get_attribute("href") for el in ep_elements]
+                    for i, ep_url in enumerate(ep_urls, 1):
+                        try:
+                            driver.get(ep_url)
+                            WebDriverWait(driver, 7).until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+                            iframe = driver.find_element(By.TAG_NAME, "iframe")
+                            real_video_link = iframe.get_attribute("src")
+                            results[key]["bolumler"].append({
+                                "bolum_baslik": f"Bölüm {i}",
+                                "link": real_video_link
+                            })
+                            print(f"   ✅ {i}. Bölüm linki alındı.")
+                            time.sleep(1)
+                        except:
+                            print(f"   ⚠️ {i}. Bölümde hata oluştu.")
+                            continue
+
+                with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+                    json.dump(results, f, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        print(f"❌ Hata: {e}")
     finally:
         driver.quit()
-        print("İşlem bitti.")
+        print("🏁 İşlem bitti.")
 
 if __name__ == "__main__":
     scrape()
