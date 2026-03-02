@@ -11,25 +11,25 @@ import os
 BASE_URL = "https://dizipal.bar"
 OUTPUT_FILE = "dizipal_arsiv.json"
 
-# Test için birkaç kategori ekledim
+# Örnek kategoriler
 KATEGORILER = {
     'aksiyon': 'Aksiyon',
     'hbomax': 'HBO Max',
     'anime': 'Anime'
 }
 
-# Chrome başlatıcı
+# Chrome başlatıcı (sürümü otomatik algıla)
 def get_driver():
     options = uc.ChromeOptions()
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--headless=new")
-    # GitHub Actions için sürüm sabitle (Chrome >=145)
-    driver = uc.Chrome(options=options, version_main=145)
+    options.add_argument("--headless=new")  # GitHub Actions için headless
+    # Sürüm otomatik, GitHub Actions ile uyumlu
+    driver = uc.Chrome(options=options)
     return driver
 
-# Cloudflare + içerik çekme
+# Scraper fonksiyonu
 def scrape():
     results = {}
     if os.path.exists(OUTPUT_FILE):
@@ -80,7 +80,6 @@ def scrape():
                     "bolumler": []
                 }
 
-                # Bölüm linklerini bul
                 ep_elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='bolum']")
                 if not ep_elements:
                     iframes = driver.find_elements(By.TAG_NAME, "iframe")
@@ -94,7 +93,9 @@ def scrape():
                     for i, ep_url in enumerate(ep_urls, 1):
                         try:
                             driver.get(ep_url)
-                            WebDriverWait(driver, 7).until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+                            WebDriverWait(driver, 7).until(
+                                EC.presence_of_element_located((By.TAG_NAME, "iframe"))
+                            )
                             iframe = driver.find_element(By.TAG_NAME, "iframe")
                             real_video_link = iframe.get_attribute("src")
                             results[key]["bolumler"].append({
