@@ -1,64 +1,33 @@
-name: "Android Build - Otomatik Ayar Modu"
-on: [push]
+name: Dizipal Scraper
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # 6 saatte bir çalışır
+  workflow_dispatch:       # Manuel çalıştırma
 
 jobs:
-  export-android:
+  scrape:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Kodlari Cek
-        uses: actions/checkout@v4
+    - name: Repo checkout
+      uses: actions/checkout@v3
 
-      - name: Godot Standart Indir
-        run: |
-          wget https://github.com/godotengine/godot/releases/download/4.2.1-stable/Godot_v4.2.1-stable_linux.x86_64.zip
-          unzip Godot_v4.2.1-stable_linux.x86_64.zip
-          mv Godot_v4.2.1-stable_linux.x86_64 godot
-          chmod +x godot
+    - name: Python kur
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Export Sablonlarini Kur
-        run: |
-          mkdir -v -p ~/.local/share/godot/export_templates/4.2.1.stable
-          wget https://github.com/godotengine/godot-builds/releases/download/4.2.1-stable/Godot_v4.2.1-stable_export_templates.tpz
-          unzip Godot_v4.2.1-stable_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.2.1.stable/
+    - name: Paketleri yükle
+      run: pip install -r requirements.txt
 
-      - name: Android SDK Ayari
-        uses: android-actions/setup-android@v3
+    - name: Script çalıştır
+      run: python scraper.py
 
-      - name: Keystore Olustur
-        run: |
-          keytool -keyalg RSA -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
-
-      - name: Export Ayarlarini (Preset) Otomatik Yaz
-        run: |
-          # Bu komut senin yerine hatasiz bir cfg dosyasi olusturur
-          cat <<EOF > export_presets.cfg
-          [preset.0]
-          name="Android"
-          platform="Android"
-          runnable=true
-          export_path="build/android/oyun.apk"
-          [preset.0.options]
-          keystore/debug="$(pwd)/debug.keystore"
-          keystore/debug_user="androiddebugkey"
-          keystore/debug_password="android"
-          keystore/release="$(pwd)/debug.keystore"
-          keystore/release_user="androiddebugkey"
-          keystore/release_password="android"
-          package/unique_name="com.tolidagames.oyun"
-          package/name="Sonsuz Macera"
-          architecture/arm64-v8a=true
-          EOF
-
-      - name: APK Olustur
-        run: |
-          mkdir -p build/android
-          # Godot'ya SDK yolunu çevre değişkeniyle öğretiyoruz
-          export GODOT_ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT
-          ./godot --headless --verbose --export-release "Android" build/android/oyun.apk
-          
-      - name: APK Yukle
-        uses: actions/upload-artifact@v4
-        with:
-          name: Oyun-Paketi
-          path: build/android/oyun.apk
+    - name: Commit ve Push
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "actions@github.com"
+        git add diziler.json
+        git commit -m "Otomatik güncelleme" || echo "Değişiklik yok"
+        git push
