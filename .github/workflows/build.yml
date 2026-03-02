@@ -2,32 +2,48 @@ name: Dizipal Scraper
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # 6 saatte bir çalışır
-  workflow_dispatch:       # Manuel çalıştırma
+    - cron: '0 */6 * * *'   # 6 saatte bir
+  workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Repo checkout
+    - name: Repo Checkout
       uses: actions/checkout@v3
 
-    - name: Python kur
+    - name: Python Kur
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
-    - name: Paketleri yükle
-      run: pip install -r requirements.txt
+    # Chrome kur
+    - name: Chrome Kur
+      uses: browser-actions/setup-chrome@v1
 
-    - name: Script çalıştır
-      run: python scraper.py
+    # Gerekli Linux paketleri
+    - name: Sistem Bağımlılıkları
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
 
+    # Python paketleri
+    - name: Paketleri Yükle
+      run: |
+        pip install --upgrade pip
+        pip install undetected-chromedriver selenium
+
+    # Script çalıştır
+    - name: Scraper Çalıştır
+      run: |
+        python scraper.py
+
+    # JSON commit
     - name: Commit ve Push
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "actions@github.com"
-        git add diziler.json
+        git add dizipal_arsiv.json || true
         git commit -m "Otomatik güncelleme" || echo "Değişiklik yok"
         git push
