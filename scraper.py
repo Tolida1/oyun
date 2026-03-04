@@ -1,8 +1,8 @@
 import requests
-from bs4 import BeautifulSoup
+import xml.etree.ElementTree as ET
 import json
 
-BASE_URL = "https://dizipal.bar/dizi-kategori/aksiyon/"
+FEED_URL = "https://dizipal.bar/dizi-kategori/aksiyon/feed/"
 
 headers = {
     "User-Agent": "Mozilla/5.0"
@@ -11,18 +11,23 @@ headers = {
 items = []
 
 try:
-    r = requests.get(BASE_URL, headers=headers, timeout=15)
-    soup = BeautifulSoup(r.text, "html.parser")
+    r = requests.get(FEED_URL, headers=headers, timeout=15)
+    r.raise_for_status()
 
-    for a in soup.select("div.grid a"):
-        title = a.get_text(strip=True)
-        link = a.get("href")
+    root = ET.fromstring(r.content)
 
-        if title and link:
-            items.append({
-                "title": title,
-                "link": link
-            })
+    channel = root.find("channel")
+
+    for item in channel.findall("item"):
+        title = item.find("title").text if item.find("title") is not None else ""
+        link = item.find("link").text if item.find("link") is not None else ""
+        pubDate = item.find("pubDate").text if item.find("pubDate") is not None else ""
+
+        items.append({
+            "title": title,
+            "link": link,
+            "pubDate": pubDate
+        })
 
 except Exception as e:
     print("Hata:", e)
@@ -31,4 +36,4 @@ except Exception as e:
 with open("output.json", "w", encoding="utf-8") as f:
     json.dump(items, f, ensure_ascii=False, indent=4)
 
-print("Bitti.")
+print("Toplam kayıt:", len(items))
