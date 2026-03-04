@@ -3,7 +3,7 @@ name: Python Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */6 * * *"  # 6 saatte bir çalışır
+    - cron: "0 */6 * * *"
 
 jobs:
   scrape:
@@ -24,6 +24,14 @@ jobs:
 
       - name: Scraper çalıştır
         run: python scraper.py
+
+      - name: Dosya var mı kontrol et
+        run: |
+          if [ -f output.json ]; then
+            echo "Dosya var"
+          else
+            echo "[]" > output.json
+          fi
 
       - name: Commit JSON
         run: |
