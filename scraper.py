@@ -1,7 +1,7 @@
 import requests
 import json
 
-API_URL = "https://dizipal.bar/wp-json/wp/v2/posts?categories=50295&per_page=100"
+API_URL = "https://dizipal.bar/wp-json/wp/v2/types"
 
 headers = {
     "User-Agent": "Mozilla/5.0"
