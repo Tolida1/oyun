@@ -1,32 +1,28 @@
 import requests
-from bs4 import BeautifulSoup
 import json
 
-URL = "https://dizipal.bar/dizi-kategori/aksiyon/"
+API_URL = "https://dizipal.bar/wp-json/wp/v2/posts?categories=50295&per_page=100"
 
 headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8",
-    "Connection": "keep-alive"
+    "User-Agent": "Mozilla/5.0"
 }
 
 items = []
 
 try:
-    r = requests.get(URL, headers=headers, timeout=20)
+    r = requests.get(API_URL, headers=headers, timeout=15)
+    print("Status:", r.status_code)
     r.raise_for_status()
 
-    soup = BeautifulSoup(r.text, "html.parser")
+    data = r.json()
 
-    for a in soup.select("div.grid a"):
-        title = a.get_text(strip=True)
-        link = a.get("href")
-
-        if title and link:
-            items.append({
-                "title": title,
-                "link": link
-            })
+    for post in data:
+        items.append({
+            "title": post["title"]["rendered"],
+            "link": post["link"],
+            "date": post["date"],
+            "excerpt": post["excerpt"]["rendered"]
+        })
 
 except Exception as e:
     print("Hata:", e)
